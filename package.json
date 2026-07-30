@@ -1,0 +1,12 @@
+{
+  "name": "progress-note-quality-agent",
+  "version": "1.0.0",
+  "description": "Grades carer progress notes as good-enough / not-good-enough and returns specific feedback. Called synchronously by Bubble on note submission.",
+  "main": "api/grade-note.js",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0"
+  }
+}
