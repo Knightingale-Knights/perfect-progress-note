@@ -87,7 +87,6 @@ module.exports = async function handler(req, res) {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-5',
       max_tokens: 1024,
-      temperature: 0.2,
       system: SYSTEM_PROMPT,
       tools: [GRADE_TOOL],
       tool_choice: { type: 'tool', name: 'submit_grade' },
