@@ -17,27 +17,35 @@ A good note doesn't need every one of these every time — some genuinely don't 
 2. **Specific, concrete actions** — not vague summaries ("helped him", "had a chat", "nil issues"). What exactly was done, and how.
 3. **Choices offered and the participant's response** — food, activities, showering, outings offered; accepted or declined; the reason given.
 4. **ADLs (activities of daily living)** — toileting, personal hygiene/showering, dressing, mobility assistance, continence care — covered with real detail when they occurred during the shift.
-5. **Medication** — administration noted with time and how it was given (e.g. "with yoghurt"), and any refusal noted with follow-up, not just "meds given, nil issues".
+5. **Medication** — administration noted with time and how it was given (e.g. "with yoghurt"), and any refusal noted with follow-up, not just "meds given, nil issues". A plain statement that no medication was required or given (e.g. "he didn't have any medication") is sufficient on its own — do not ask for further detail (whether it was scheduled, due, or explicitly waived) beyond that statement.
 6. **Food & fluid intake** — what was eaten/drunk, roughly how much, any texture modification (e.g. thickened fluids), not just "had lunch".
 7. **Health observations** — anything clinically relevant noted during the shift: bowel movements (type/amount), vitals if taken, skin/wound issues, safety concerns.
 8. **Appointments** — medical or allied health: time, who, what was discussed at a reasonable level of detail (not overly personal/clinical detail, just enough to show what happened).
-9. **Mood and behaviour, with evidence** — not just "in a good mood" but what showed it: a quote, a specific moment, a trigger. The participant's own words are a strong positive signal.
+9. **Mood and behaviour, with evidence** — not just "in a good mood" but what showed it: a quote, a specific moment, a trigger. The participant's own words are a strong positive signal. When judging this, also weigh strong participant-voice detail found elsewhere in the note (specific requests, places they wanted to go, things they asked for) — a note with vivid personhood detail elsewhere shouldn't be failed solely for a couple of generic stock mood phrases (e.g. "looking normal as usual").
 10. **Participant's voice and preferences** — quotes, things they asked for, opinions they shared. This is what separates a real, present carer's note from a generic one.
-11. **Shift-end handover basics** — home left safe (doors, alarms, heater etc.), participant settled/comfortable when the carer left.
+11. **Shift-end handover basics** — home left safe (doors, alarms, heater etc.), participant settled/comfortable when the carer left. A general statement like "everything was safe and secure" fully satisfies this — don't require an itemized list of doors/heater/appliances unless the note gives a specific reason to doubt it.
 
 Both of these formats are acceptable — grade on content, not layout:
 - **Structured with headers** (Shift Summary / Housework / ADLs / Mood / Outings / Food / Fluid / Maintenance / Medical Appts / Allied Health Appts)
 - **Flowing narrative**, timestamped prose covering the same ground without headers
 
+## Using rostered shift start/end time, when provided
+
+If the rostered shift start and end times are given to you, use them to check coverage at the END of the shift and to gauge internal gaps — but NOT to check the beginning:
+- Treat the note's own first timestamped entry as the effective start of the shift. Never flag anything about time before the note's first entry, even if it's later than the rostered start — there is no way to know what happened before a carer's first written entry, so it isn't a gap to call out.
+- The note's last entry should be reasonably close to the rostered end (a note that goes quiet well before the shift ended is a coverage gap, unless it explains the participant was asleep/settled and nothing further occurred).
+- Internal gaps should be judged against the total shift length: a 20-minute unexplained gap in a 2-hour shift is proportionally bigger than the same gap in an 8-hour shift.
+- If shift start/end aren't provided, just judge internal consistency and end coverage as normal without penalizing for this.
+
 ## What makes a note NOT good enough
 
 - Vague, generic phrasing that could describe any participant on any day ("had a good day", "nil issues noted", "assisted with meds") with no specifics behind it.
 - Missing or absent timestamps, or only 1-2 timestamps for a multi-hour shift.
-- Large unexplained time gaps (e.g. a whole hour with nothing documented and no rest/nap noted).
+- Large unexplained time gaps (e.g. a whole hour with nothing documented and no rest/nap noted), including a gap between the note's last entry and the rostered end time, when provided. Never flag a gap before the note's first entry.
 - ADL and medication administration mentioned only in passing with no detail, when they clearly occurred (these matter most for compliance/audit — treat gaps here as more serious than gaps in, say, mood detail).
 - No participant voice at all — reads like a checklist rather than a record of a real interaction.
 - Overall too thin for what should be a documented shift (e.g. a full day shift covered in 4-5 short lines).
-- Concerning content mentioned with no follow-up or context (e.g. alcohol or smoking noted flatly with no note of whether this is per the participant's own care plan/norm) — flag this as a gap, not as a moral judgement; the note should show the carer registered it, not just logged it.
+- Concerning content mentioned with genuinely no context (e.g. alcohol or smoking noted with no indication of whether this is expected/routine for the participant) — flag this as a gap, not as a moral judgement. A brief phrase showing it's the participant's usual pattern (e.g. "as he smokes regularly", "as usual") is enough context on its own — don't require a specific reference to the care plan by name.
 
 ## Your job
 
@@ -73,14 +81,22 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { noteText, shiftContext } = req.body || {};
+  const { noteText, shiftContext, shiftStart, shiftEnd } = req.body || {};
 
   if (!noteText || typeof noteText !== 'string' || !noteText.trim()) {
     return res.status(400).json({ error: 'noteText (string) is required' });
   }
 
-  const userMessage = shiftContext
-    ? `Shift context: ${shiftContext}\n\nProgress note to grade:\n\n${noteText}`
+  const contextLines = [];
+  if (shiftStart || shiftEnd) {
+    contextLines.push(`Rostered shift: ${shiftStart || 'unknown start'} to ${shiftEnd || 'unknown end'}`);
+  }
+  if (shiftContext) {
+    contextLines.push(`Shift context: ${shiftContext}`);
+  }
+
+  const userMessage = contextLines.length
+    ? `${contextLines.join('\n')}\n\nProgress note to grade:\n\n${noteText}`
     : `Progress note to grade:\n\n${noteText}`;
 
   try {
