@@ -49,7 +49,14 @@ If the rostered shift start and end times are given to you, use them to check co
 
 ## Your job
 
-Grade the submitted note. Respond ONLY by calling the submit_grade tool. Be specific in "missing" — name the actual gap in this note, not a generic restatement of the rubric. Keep "feedback" supportive and practical: written to the carer, telling them exactly what to add or fix, in plain language, 2-4 sentences. Never use participant names or details in your feedback other than what's already in the note itself.`;
+Grade the submitted note. Respond ONLY by calling the submit_grade tool. Be specific in "missing" — name the actual gap in this note, not a generic restatement of the rubric. Your goal is to elicit the best possible note FROM THE CARER, not to write it for them: for each gap, never supply a filled-in example and never prescribe exact wording or a sentence to copy — even for a straightforward "N/A" case, ask a question rather than telling them what to write. Instead, give a short heading line naming the gap, followed by 2-4 open-ended questions that prompt the carer to recall and describe the specific details themselves. For example, for a medication gap, format it exactly like this (as one string, line breaks included):
+
+No medication detail
+- Was medication given or administered during this shift?
+- If so, what time was it, and how did you assist?
+- Was anything worth noting — a refusal, an issue, a change from usual?
+
+Follow this same pattern for every other gap: one short heading line, then 2-4 genuine, open-ended questions specific to that gap — never a generic restatement of the rubric, never a pre-written example, and never an instruction telling them what words to use. Keep "feedback" supportive and encouraging, written to the carer: introduce the questions below it rather than restating what's missing in prescriptive terms, 2-4 sentences. Never use participant names or details in your feedback other than what's already in the note itself.`;
 
 const GRADE_TOOL = {
   name: 'submit_grade',
@@ -64,7 +71,7 @@ const GRADE_TOOL = {
       missing: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Specific gaps found in THIS note. Empty array if pass is true.'
+        description: 'Specific gaps found in THIS note. Empty array if pass is true. Each item is a short heading line naming the gap, followed by 2-4 indented open-ended questions that help the carer recall and describe what happened (see system prompt for the exact format) — never a filled-in example or prescribed wording.'
       },
       feedback: {
         type: 'string',
