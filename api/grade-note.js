@@ -1,4 +1,5 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const { fetchRecentNotesForParticipant } = require('../lib/bubbleApi');
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -17,13 +18,13 @@ A good note doesn't need every one of these every time — some genuinely don't 
 2. **Specific, concrete actions** — not vague summaries ("helped him", "had a chat", "nil issues"). What exactly was done, and how.
 3. **Choices offered and the participant's response** — food, activities, showering, outings offered; accepted or declined; the reason given.
 4. **ADLs (activities of daily living)** — toileting, personal hygiene/showering, dressing, mobility assistance, continence care — covered with real detail when they occurred during the shift.
-5. **Medication** — administration noted with time and how it was given (e.g. "with yoghurt"), and any refusal noted with follow-up, not just "meds given, nil issues". A plain statement that no medication was required or given (e.g. "he didn't have any medication") is sufficient on its own — do not ask for further detail (whether it was scheduled, due, or explicitly waived) beyond that statement.
+5. **Medication** — administration noted with time and how it was given (e.g. "with yoghurt"), and any refusal noted with follow-up, not just "meds given, nil issues". A plain statement that no medication was required or given (e.g. "he didn't have any medication") is sufficient on its own — do not ask for further detail (whether it was scheduled, due, or explicitly waived) beyond that statement. If medication was administered by someone OTHER than the carer (e.g. a visiting or on-site nurse), the carer only needs to note whether any issues or reactions occurred — do not expect or ask them to know which medication was given, the dosage, or the administration method, since that's outside what they'd witness or be told.
 6. **Food & fluid intake** — what was eaten/drunk, roughly how much, any texture modification (e.g. thickened fluids), not just "had lunch".
 7. **Health observations** — anything clinically relevant noted during the shift: bowel movements (type/amount), vitals if taken, skin/wound issues, safety concerns.
 8. **Appointments** — medical or allied health: time, who, what was discussed at a reasonable level of detail (not overly personal/clinical detail, just enough to show what happened).
 9. **Mood and behaviour, with evidence** — not just "in a good mood" but what showed it: a quote, a specific moment, a trigger. The participant's own words are a strong positive signal. When judging this, also weigh strong participant-voice detail found elsewhere in the note (specific requests, places they wanted to go, things they asked for) — a note with vivid personhood detail elsewhere shouldn't be failed solely for a couple of generic stock mood phrases (e.g. "looking normal as usual").
 10. **Participant's voice and preferences** — quotes, things they asked for, opinions they shared. This is what separates a real, present carer's note from a generic one.
-11. **Shift-end handover basics** — home left safe (doors, alarms, heater etc.), participant settled/comfortable when the carer left. A general statement like "everything was safe and secure" fully satisfies this — don't require an itemized list of doors/heater/appliances unless the note gives a specific reason to doubt it.
+11. **Shift-end handover basics** — home left safe (doors, alarms, heater etc.), participant settled/comfortable when the carer left. A general statement like "everything was safe and secure" or "left comfortable/settled" fully satisfies this on its own — this is a genuinely low bar. Do NOT put this in "missing" and do NOT generate a follow-up question about it (doors, alarms, appliances, or anything else) once any such general statement is present. If the shift instead ends with the participant handed over to on-site staff or another carer (rather than left alone at home), this item doesn't apply at all — do not ask about home/room safety in that case either; the handover itself is the closing detail. Further detail is a bonus if the carer happens to include it, never something to ask for.
 
 Both of these formats are acceptable — grade on content, not layout:
 - **Structured with headers** (Shift Summary / Housework / ADLs / Mood / Outings / Food / Fluid / Maintenance / Medical Appts / Allied Health Appts)
@@ -37,6 +38,16 @@ If the rostered shift start and end times are given to you, use them to check co
 - Internal gaps should be judged against the total shift length: a 20-minute unexplained gap in a 2-hour shift is proportionally bigger than the same gap in an 8-hour shift.
 - If shift start/end aren't provided, just judge internal consistency and end coverage as normal without penalizing for this.
 
+## Checking for copy-pasted or reused content
+
+You may be given this participant's most recent prior notes for comparison. Use them ONLY to check whether today's note looks reused rather than freshly written — not for anything else.
+
+Be conservative here. Progress notes for the same participant will naturally and legitimately repeat lines, phrases, and even whole sentences across different days — same wake time, same breakfast, same routine tasks, same recurring phrasing. This kind of repetition is NORMAL and expected. Never flag it, no matter how many individual lines or sentences match a prior note, even word-for-word.
+
+Only flag it in one specific case: the note being graded, taken as a whole, is essentially a copy of one single prior note — i.e. if you laid the two notes side by side, nearly every line of today's note corresponds to a matching line in that one prior note, such that the note reads as the same document resubmitted rather than a fresh account of a different day. Partial overlap — even a lot of it — does not qualify. It has to be the whole note.
+
+If there's any real doubt, don't flag it.
+
 ## What makes a note NOT good enough
 
 - Vague, generic phrasing that could describe any participant on any day ("had a good day", "nil issues noted", "assisted with meds") with no specifics behind it.
@@ -45,7 +56,8 @@ If the rostered shift start and end times are given to you, use them to check co
 - ADL and medication administration mentioned only in passing with no detail, when they clearly occurred (these matter most for compliance/audit — treat gaps here as more serious than gaps in, say, mood detail).
 - No participant voice at all — reads like a checklist rather than a record of a real interaction.
 - Overall too thin for what should be a documented shift (e.g. a full day shift covered in 4-5 short lines).
-- Concerning content mentioned with genuinely no context (e.g. alcohol or smoking noted with no indication of whether this is expected/routine for the participant) — flag this as a gap, not as a moral judgement. A brief phrase showing it's the participant's usual pattern (e.g. "as he smokes regularly", "as usual") is enough context on its own — don't require a specific reference to the care plan by name.
+- Concerning content mentioned with genuinely no context (e.g. alcohol or smoking noted with no indication of whether this is expected/routine for the participant) — flag this as a gap, not as a moral judgement. A brief phrase showing it's the participant's usual pattern, or that it's per an approved routine/schedule/care plan (e.g. "as he smokes regularly", "as usual", "as per his approved schedule"), is enough context on its own — don't require a specific reference to the care plan by name, don't ask the carer to describe what the routine normally looks like, and don't ask about the participant's reaction or response to it.
+- The ENTIRE note is essentially the same as one specific recent prior note for the same participant (see "Checking for copy-pasted or reused content" above) — only when nearly the whole note matches, never for a few overlapping sentences or ordinary routine similarity.
 
 ## Your job
 
@@ -55,6 +67,13 @@ No medication detail
 - Was medication given or administered during this shift?
 - If so, what time was it, and how did you assist?
 - Was anything worth noting — a refusal, an issue, a change from usual?
+
+And for a suspected copy-paste, in the same style:
+
+Note looks very similar to your entry from [date of the prior note]
+- What actually happened today that's different from that day?
+- Can you describe today's specific moments in your own words?
+- Is there anything about today you haven't mentioned yet?
 
 Follow this same pattern for every other gap: one short heading line, then 2-4 genuine, open-ended questions specific to that gap — never a generic restatement of the rubric, never a pre-written example, and never an instruction telling them what words to use. Keep "feedback" supportive and encouraging, written to the carer: introduce the questions below it rather than restating what's missing in prescriptive terms, 2-4 sentences. Never use participant names or details in your feedback other than what's already in the note itself.`;
 
@@ -88,7 +107,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { noteText, shiftContext, shiftStart, shiftEnd } = req.body || {};
+  const { noteText, shiftContext, shiftStart, shiftEnd, participantId } = req.body || {};
 
   if (!noteText || typeof noteText !== 'string' || !noteText.trim()) {
     return res.status(400).json({ error: 'noteText (string) is required' });
@@ -102,9 +121,23 @@ module.exports = async function handler(req, res) {
     contextLines.push(`Shift context: ${shiftContext}`);
   }
 
+  const priorNotes = await fetchRecentNotesForParticipant(participantId, 10);
+
+  let priorNotesBlock = '';
+  if (priorNotes.length > 0) {
+    const MAX_CHARS_PER_NOTE = 1200; // keep prompt size sane across up to 10 prior notes
+    const formatted = priorNotes
+      .map((n, i) => {
+        const trimmed = n.text.length > MAX_CHARS_PER_NOTE ? `${n.text.slice(0, MAX_CHARS_PER_NOTE)}...` : n.text;
+        return `--- Prior note ${i + 1} (${n.date || 'date unknown'}) ---\n${trimmed}`;
+      })
+      .join('\n\n');
+    priorNotesBlock = `\n\nThis participant's most recent prior notes, for the copy-paste check ONLY:\n\n${formatted}`;
+  }
+
   const userMessage = contextLines.length
-    ? `${contextLines.join('\n')}\n\nProgress note to grade:\n\n${noteText}`
-    : `Progress note to grade:\n\n${noteText}`;
+    ? `${contextLines.join('\n')}\n\nProgress note to grade:\n\n${noteText}${priorNotesBlock}`
+    : `Progress note to grade:\n\n${noteText}${priorNotesBlock}`;
 
   try {
     const response = await anthropic.messages.create({
