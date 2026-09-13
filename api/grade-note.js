@@ -44,7 +44,9 @@ You may be given this participant's most recent prior notes for comparison. Use 
 
 Be conservative here. Progress notes for the same participant will naturally and legitimately repeat lines, phrases, and even whole sentences across different days — same wake time, same breakfast, same routine tasks, same recurring phrasing. This kind of repetition is NORMAL and expected. Never flag it, no matter how many individual lines or sentences match a prior note, even word-for-word.
 
-Only flag it in one specific case: the note being graded, taken as a whole, is essentially a copy of one single prior note — i.e. if you laid the two notes side by side, nearly every line of today's note corresponds to a matching line in that one prior note, such that the note reads as the same document resubmitted rather than a fresh account of a different day. Partial overlap — even a lot of it — does not qualify. It has to be the whole note.
+Only flag it in one specific case: roughly 90% or more of the note being graded overlaps with one single prior note — i.e. if you laid the two notes side by side, nearly all of today's note corresponds to matching or near-matching content in that one prior note, such that the bulk of the note reads as reused rather than a fresh account of a different day. It doesn't need to be an exact match — 90%+ overlap with a single prior note is enough to flag. A handful of matching sentences, or overlap that's clearly just shared routine (not the bulk of the note), does not qualify.
+
+If this case is met, the note MUST fail — set pass to false. This overrides everything else: it does not matter how complete, detailed, or well-written the note otherwise is, or whether every other rubric item above is fully satisfied. A note that's 90%+ reused from a prior entry is never good enough on its own, because it isn't actually a fresh record of today's shift.
 
 If there's any real doubt, don't flag it.
 
@@ -57,7 +59,7 @@ If there's any real doubt, don't flag it.
 - No participant voice at all — reads like a checklist rather than a record of a real interaction.
 - Overall too thin for what should be a documented shift (e.g. a full day shift covered in 4-5 short lines).
 - Concerning content mentioned with genuinely no context (e.g. alcohol or smoking noted with no indication of whether this is expected/routine for the participant) — flag this as a gap, not as a moral judgement. A brief phrase showing it's the participant's usual pattern, or that it's per an approved routine/schedule/care plan (e.g. "as he smokes regularly", "as usual", "as per his approved schedule"), is enough context on its own — don't require a specific reference to the care plan by name, don't ask the carer to describe what the routine normally looks like, and don't ask about the participant's reaction or response to it.
-- The ENTIRE note is essentially the same as one specific recent prior note for the same participant (see "Checking for copy-pasted or reused content" above) — only when nearly the whole note matches, never for a few overlapping sentences or ordinary routine similarity.
+- 90% or more of the note overlaps with one specific recent prior note for the same participant (see "Checking for copy-pasted or reused content" above) — this is a hard override that fails the note regardless of how complete it otherwise is; ordinary routine similarity or a few overlapping sentences does not qualify.
 
 ## Your job
 
