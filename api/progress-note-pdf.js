@@ -24,7 +24,8 @@ const fonts = {
     bolditalics: 'Helvetica-BoldOblique',
   },
   AnticDidone: {
-    normal: path.join(__dirname, 'fonts', 'AnticDidone-Regular.ttf'),
+    // progress-note-pdf.js lives in /api, font sits at the repo root
+    normal: path.join(__dirname, '..', 'AnticDidone-Regular.ttf'),
   },
 };
 
