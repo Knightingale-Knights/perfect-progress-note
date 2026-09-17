@@ -115,8 +115,10 @@ module.exports = async (req, res) => {
     pdfDoc.on('data', (chunk) => chunks.push(chunk));
     pdfDoc.on('end', () => {
       const base64 = Buffer.concat(chunks).toString('base64');
-      const safeName = (participant || 'progress-note').toString().replace(/\s+/g, '-').toLowerCase();
-      res.status(200).json({ pdfBase64: base64, filename: `progress-note-${safeName}.pdf` });
+      const safeParticipant = (participant || 'Unknown').toString().replace(/[\\/:*?"<>|]/g, '-');
+      const safeDate = (date || '').toString().replace(/[\\/:*?"<>|]/g, '-');
+      const filename = `Progress Note - ${safeParticipant} - ${safeDate}.pdf`;
+      res.status(200).json({ pdfBase64: base64, filename });
     });
     pdfDoc.end();
   } catch (err) {
