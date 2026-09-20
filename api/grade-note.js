@@ -46,6 +46,8 @@ Be conservative here. Progress notes for the same participant will naturally and
 
 Only flag it in one specific case: roughly 90% or more of the note being graded overlaps with one single prior note — i.e. if you laid the two notes side by side, nearly all of today's note corresponds to matching or near-matching content in that one prior note, such that the bulk of the note reads as reused rather than a fresh account of a different day. It doesn't need to be an exact match — 90%+ overlap with a single prior note is enough to flag. A handful of matching sentences, or overlap that's clearly just shared routine (not the bulk of the note), does not qualify.
 
+Short, routine shifts need extra care here. A participant with a short (roughly 3 hours or less), simple, unchanging daily routine will legitimately produce very similar notes day to day — that's honest reporting of a repetitive routine, not reuse. For shifts this short, don't rely on thematic or routine similarity alone to reach the 90% bar. Look instead for near-verbatim, word-for-word phrasing repeated from a prior note, especially where timestamps also match or nearly match — that combination is a much stronger signal of actual copy-paste than two short notes simply describing the same stable routine in their own words.
+
 If this case is met, the note MUST fail — set pass to false. This overrides everything else: it does not matter how complete, detailed, or well-written the note otherwise is, or whether every other rubric item above is fully satisfied. A note that's 90%+ reused from a prior entry is never good enough on its own, because it isn't actually a fresh record of today's shift.
 
 If there's any real doubt, don't flag it.
@@ -57,7 +59,7 @@ If there's any real doubt, don't flag it.
 - Large unexplained time gaps (e.g. a whole hour with nothing documented and no rest/nap noted), including a gap between the note's last entry and the rostered end time, when provided. Never flag a gap before the note's first entry.
 - ADL and medication administration mentioned only in passing with no detail, when they clearly occurred (these matter most for compliance/audit — treat gaps here as more serious than gaps in, say, mood detail).
 - No participant voice at all — reads like a checklist rather than a record of a real interaction.
-- Overall too thin for what should be a documented shift (e.g. a full day shift covered in 4-5 short lines).
+- Overall too thin for what should be a documented shift given its length (e.g. a full 8-hour day shift covered in 4-5 short lines). A short shift (roughly 3 hours or less) is expected to produce a shorter note — do not penalize brevity that's proportionate to a short rostered length.
 - Concerning content mentioned with genuinely no context (e.g. alcohol or smoking noted with no indication of whether this is expected/routine for the participant) — flag this as a gap, not as a moral judgement. A brief phrase showing it's the participant's usual pattern, or that it's per an approved routine/schedule/care plan (e.g. "as he smokes regularly", "as usual", "as per his approved schedule"), is enough context on its own — don't require a specific reference to the care plan by name, don't ask the carer to describe what the routine normally looks like, and don't ask about the participant's reaction or response to it.
 - 90% or more of the note overlaps with one specific recent prior note for the same participant (see "Checking for copy-pasted or reused content" above) — this is a hard override that fails the note regardless of how complete it otherwise is; ordinary routine similarity or a few overlapping sentences does not qualify.
 
@@ -115,9 +117,30 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'noteText (string) is required' });
   }
 
+  function parseHHMM(value) {
+    if (!value) return null;
+    const digits = String(value).replace(/[^0-9]/g, '');
+    if (digits.length < 3 || digits.length > 4) return null;
+    const padded = digits.padStart(4, '0');
+    const hours = parseInt(padded.slice(0, 2), 10);
+    const mins = parseInt(padded.slice(2), 10);
+    if (hours > 23 || mins > 59) return null;
+    return hours * 60 + mins;
+  }
+
+  let shiftLengthHours = null;
+  const startMin = parseHHMM(shiftStart);
+  const endMin = parseHHMM(shiftEnd);
+  if (startMin !== null && endMin !== null) {
+    let diff = endMin - startMin;
+    if (diff <= 0) diff += 24 * 60; // handle overnight shifts
+    shiftLengthHours = Math.round((diff / 60) * 10) / 10;
+  }
+
   const contextLines = [];
   if (shiftStart || shiftEnd) {
-    contextLines.push(`Rostered shift: ${shiftStart || 'unknown start'} to ${shiftEnd || 'unknown end'}`);
+    const lengthNote = shiftLengthHours !== null ? ` (approximately ${shiftLengthHours} hours)` : '';
+    contextLines.push(`Rostered shift: ${shiftStart || 'unknown start'} to ${shiftEnd || 'unknown end'}${lengthNote}`);
   }
   if (shiftContext) {
     contextLines.push(`Shift context: ${shiftContext}`);
