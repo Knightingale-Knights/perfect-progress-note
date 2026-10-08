@@ -40,14 +40,53 @@ Rules:
 - Plain text only. No markdown, no bullet symbols.
 - No text outside the JSON object.`;
 
+async function readRaw(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+function extractSummary(raw) {
+  try {
+    const obj = JSON.parse(raw);
+    if (obj && typeof obj.summary === "string") return obj.summary;
+  } catch (e) {
+    // fall through to tolerant parsing
+  }
+  const m = raw.match(/^\s*\{\s*"summary"\s*:\s*"([\s\S]*)"\s*\}\s*$/);
+  if (!m) return "";
+  return m[1]
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "")
+    .replace(/\\t/g, "\t")
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, "\\");
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST only" });
   }
 
-  const summary = (req.body && req.body.summary ? String(req.body.summary) : "").trim();
+  let raw = "";
+  try {
+    raw = await readRaw(req);
+  } catch (e) {
+    raw = "";
+  }
+
+  let summary = extractSummary(raw).trim();
+
+  if (!summary && !raw) {
+    try {
+      if (req.body && req.body.summary) summary = String(req.body.summary).trim();
+    } catch (e) {
+      // ignore
+    }
+  }
+
   if (!summary) {
-    return res.status(400).json({ error: "summary is required" });
+    return res.status(400).json({ error: "summary is required or body was not readable", rawLength: raw.length });
   }
 
   try {
