@@ -36,8 +36,10 @@ Rules:
 - Use only information in the summary. Never invent or assume details.
 - Keep the carer's facts, names and times. Rewrite lightly for clarity, concise.
 - If something fits more than one field, put it in the best fit and do not repeat it.
-- If the summary has nothing for a field, write exactly: ${EMPTY_TEXT}
-- Plain text only. No markdown, no bullet symbols.
+- Put each separate item on its own line, starting with "• " (bullet then a space). Use short phrases, not commas to join items. A single item still gets a bullet. Separate lines with a newline character.
+- Example for housework: "• washed dishes\\n• vacuumed the floor\\n• made the bed"
+- If the summary has nothing for a field, write exactly: ${EMPTY_TEXT} (no bullet)
+- Plain text only. No markdown, the only symbol allowed is the • bullet.
 - No text outside the JSON object.`;
 
 async function readRaw(req) {
@@ -61,6 +63,18 @@ function extractSummary(raw) {
     .replace(/\\t/g, "\t")
     .replace(/\\"/g, '"')
     .replace(/\\\\/g, "\\");
+}
+
+function formatField(value) {
+  if (typeof value !== "string" || !value.trim()) return EMPTY_TEXT;
+  const text = value.trim();
+  if (text.toLowerCase() === EMPTY_TEXT.toLowerCase()) return EMPTY_TEXT;
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^\s*(?:[•\-\*·]\s*)+/, "").trim())
+    .filter(Boolean);
+  if (!lines.length) return EMPTY_TEXT;
+  return lines.map((l) => "• " + l).join("\n");
 }
 
 export default async function handler(req, res) {
@@ -127,8 +141,7 @@ export default async function handler(req, res) {
 
     const out = {};
     for (const key of FIELDS) {
-      const v = parsed[key];
-      out[key] = typeof v === "string" && v.trim() ? v.trim() : EMPTY_TEXT;
+      out[key] = formatField(parsed[key]);
     }
 
     return res.status(200).json(out);
