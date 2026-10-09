@@ -65,6 +65,24 @@ function extractSummary(raw) {
     .replace(/\\\\/g, "\\");
 }
 
+function parseModelJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    // try the outermost braces
+  }
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    try {
+      return JSON.parse(text.slice(start, end + 1));
+    } catch (e) {
+      // fall through
+    }
+  }
+  return null;
+}
+
 function formatField(value) {
   if (typeof value !== "string" || !value.trim()) return EMPTY_TEXT;
   const text = value.trim();
@@ -75,6 +93,38 @@ function formatField(value) {
     .filter(Boolean);
   if (!lines.length) return EMPTY_TEXT;
   return lines.map((l) => "• " + l).join("\n");
+}
+
+async function callClaude(summary) {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-5",
+      max_tokens: 8000,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: summary }],
+    }),
+  });
+
+  if (!r.ok) {
+    const detail = await r.text();
+    return { error: { status: 502, body: { error: "Claude call failed", detail } } };
+  }
+
+  const data = await r.json();
+  const text = (data.content || [])
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("")
+    .replace(/```json|```/g, "")
+    .trim();
+
+  return { text, stopReason: data.stop_reason };
 }
 
 export default async function handler(req, res) {
@@ -104,39 +154,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 1500,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: summary }],
-      }),
-    });
+    let parsed = null;
+    let last = null;
 
-    if (!r.ok) {
-      const detail = await r.text();
-      return res.status(502).json({ error: "Claude call failed", detail });
+    for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
+      const result = await callClaude(summary);
+      if (result.error) return res.status(result.error.status).json(result.error.body);
+      last = result;
+      parsed = parseModelJson(result.text);
     }
 
-    const data = await r.json();
-    const text = (data.content || [])
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .replace(/```json|```/g, "")
-      .trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch (e) {
-      return res.status(502).json({ error: "Could not parse model output", raw: text });
+    if (!parsed) {
+      return res.status(502).json({
+        error: "Could not parse model output",
+        stopReason: last && last.stopReason,
+        raw: last && last.text,
+      });
     }
 
     const out = {};
